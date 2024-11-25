@@ -136,14 +136,13 @@ int main(void)
  80001f4:	f44f 6100 	mov.w	r1, #2048	@ 0x800
  80001f8:	f04f 4090 	mov.w	r0, #1207959552	@ 0x48000000
  80001fc:	f000 fe0a 	bl	8000e14 <HAL_GPIO_TogglePin>
-		  HAL_Delay(3000);
- 8000200:	f640 30b8 	movw	r0, #3000	@ 0xbb8
+		  HAL_Delay(2000);
+ 8000200:	f44f 60fa 	mov.w	r0, #2000	@ 0x7d0
  8000204:	f000 faca 	bl	800079c <HAL_Delay>
 		  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_11);
  8000208:	f44f 6100 	mov.w	r1, #2048	@ 0x800
  800020c:	f04f 4090 	mov.w	r0, #1207959552	@ 0x48000000
  8000210:	f000 fe00 	bl	8000e14 <HAL_GPIO_TogglePin>
-
 	  }
 	  if (serial_LED1==1){
  8000214:	4b18      	ldr	r3, [pc, #96]	@ (8000278 <main+0xb0>)
@@ -534,7 +533,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
  800046a:	4914      	ldr	r1, [pc, #80]	@ (80004bc <HAL_UART_RxCpltCallback+0x5c>)
  800046c:	4814      	ldr	r0, [pc, #80]	@ (80004c0 <HAL_UART_RxCpltCallback+0x60>)
  800046e:	f001 ffbb 	bl	80023e8 <HAL_UART_Receive_IT>
- if (strncmp((char *)rx_buff, "LED1", 4) == 0) //recibido “LED1�?
+ if (strncmp((char *)rx_buff, "LED1", 4) == 0)
  8000472:	2204      	movs	r2, #4
  8000474:	4913      	ldr	r1, [pc, #76]	@ (80004c4 <HAL_UART_RxCpltCallback+0x64>)
  8000476:	4811      	ldr	r0, [pc, #68]	@ (80004bc <HAL_UART_RxCpltCallback+0x5c>)
@@ -548,7 +547,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
  8000484:	2201      	movs	r2, #1
  8000486:	701a      	strb	r2, [r3, #0]
  }
- if (strncmp((char *)rx_buff, "LED2", 4) == 0) //recibido “LED2�?
+ if (strncmp((char *)rx_buff, "LED2", 4) == 0)
  8000488:	2204      	movs	r2, #4
  800048a:	4910      	ldr	r1, [pc, #64]	@ (80004cc <HAL_UART_RxCpltCallback+0x6c>)
  800048c:	480b      	ldr	r0, [pc, #44]	@ (80004bc <HAL_UART_RxCpltCallback+0x5c>)

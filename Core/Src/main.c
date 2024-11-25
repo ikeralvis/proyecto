@@ -106,21 +106,20 @@ int main(void)
 	  if(serial_LED_start==1){
 		  serial_LED_start=0;
 		  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_11);
-		  HAL_Delay(3000);
+		  HAL_Delay(2000);
 		  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_11);
-
 	  }
 	  if (serial_LED1==1){
-	  		  serial_LED1=0;
-	  		  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
-	  		  HAL_Delay(1000);
-	  		  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
+		  serial_LED1=0;
+	  	  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
+	      HAL_Delay(500);
+	      HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
 	  	  }
-	  	  if(serial_LED2 ==1){
-	  		  serial_LED2=0;
-	  		  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_9);
-	  		  HAL_Delay(1000);
-	  		  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_9);
+	  if(serial_LED2 ==1){
+	     serial_LED2=0;
+	     HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_9);
+	     HAL_Delay(500);
+	     HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_9);
 
 	  	  }
     /* USER CODE END WHILE */
@@ -263,15 +262,15 @@ static void MX_GPIO_Init(void)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
  HAL_UART_Receive_IT(&huart2, rx_buff, 4);
- if (strncmp((char *)rx_buff, "LED1", 4) == 0) //recibido “LED1�?
+ if (strncmp((char *)rx_buff, "LED1", 4) == 0)
  {
  serial_LED1 = 1;
  }
- if (strncmp((char *)rx_buff, "LED2", 4) == 0) //recibido “LED2�?
+ if (strncmp((char *)rx_buff, "LED2", 4) == 0)
  {
  serial_LED2 = 1;
  }
- if(strncmp((char *)rx_buff, "START", 4) == 0){
+ if(strncmp((char *)rx_buff, "STRT", 4) == 0){
 	 serial_LED_start=1;
  }
 }
