@@ -1,48 +1,34 @@
 import os
+import random
+import threading
 import serial
-import tkinter as tk
-from tkinter import ttk
-import tkinter.font as tkfont
+import customtkinter as ctk
+from PIL import Image, ImageTk
+import time
+import serial.tools.list_ports
+
 
 # Configuración de las rutas de Tcl y Tk
 os.environ['TCL_LIBRARY'] = r'C:\Users\Usuario\AppData\Local\Programs\Python\Python313\tcl\tcl8.6'
 os.environ['TK_LIBRARY'] = r'C:\Users\Usuario\AppData\Local\Programs\Python\Python313\tcl\tk8.6'
 
+# Configurar el tema y apariencia de CustomTkinter
+ctk.set_appearance_mode("Dark")  # Opciones: "System", "Dark", "Light"
+ctk.set_default_color_theme("blue")  # Opciones: "blue", "green", "dark-blue"
+
 class SimonGame:
     def __init__(self, root):
         self.root = root
-        self.root.title("Juego Simon")
-        self.setup_serial()
-        self.setup_styles()
+        self.root.title("Simon Little")
+        self.root.iconbitmap("simon.ico")
+
         self.create_gui()
-
-    def setup_styles(self):
-        # Crear fuente personalizada para el botón
-        self.button_font = tkfont.Font(
-            family="Helvetica",
-            size=16,
-            weight="bold"
-        )
-
-        # Crear un estilo personalizado para el botón de inicio
-        self.style = ttk.Style()
-        self.style.configure(
-            'Start.TButton',
-            font=self.button_font,
-            padding=(20, 10),
-            background='#4C1950',
-            foreground='white'
-        )
-
-        # Configurar los estados del botón
-        self.style.map('Start.TButton',
-            background=[('active', '#45a049'), ('pressed', '#3d8b40')],
-            relief=[('pressed', 'sunken')]
-        )
+        self.setup_serial()
+        
 
     def setup_serial(self):
-        self.port = "COM5"
-        self.baud_rate = 115200
+        self.port = "COM5"  # Cambiar al puerto serie correspondiente
+        self.baud_rate = 115200 
         self.ser = None
         try:
             self.ser = serial.Serial(self.port, self.baud_rate, timeout=1)
@@ -51,100 +37,143 @@ class SimonGame:
             print(f"Error al conectar al puerto serial: {e}")
 
     def create_gui(self):
-        # Frame principal
-        main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        # Fuente personalizada para el título
+        fuente_titulo = ctk.CTkFont(family="Quicksand", 
+                                    size=24, 
+                                    weight="bold")
         
+        fuente_subtitulo = ctk.CTkFont(family="Comfortaa", 
+                                       size=16, 
+                                       weight="normal")
+        
+        fuente_boton = ctk.CTkFont(family="Comic Sans MS", 
+                                   size=24, 
+                                   weight="bold")
+        
+        fuente_texto = ctk.CTkFont(family="Arial",
+                                    size=14,
+                                    weight="normal")
+
+        # Frame principal
+        main_frame = ctk.CTkFrame(self.root, corner_radius=10, border_width=1)
+        main_frame.pack(padx=20, pady=20, fill="both", expand=True)
 
         # Etiqueta de bienvenida
-        self.label = ttk.Label(
+        welcome_label = ctk.CTkLabel(
             main_frame, 
-            text="Bienvenido al juego de Simon, dale al botón para empezar y comenzar con el juego. ¡Buena suerte!",
+            text="Bienvenido al juego de Simon Little\n Dale al botón \"Empezar Juego\" para empezar este increible juego de memoria\n ¡Buena suerte!",
             wraplength=500,
-            font=("Helvetica", 14)
+            font= fuente_titulo
         )
-        self.label.grid(row=0, column=0, pady=15, columnspan=3)
+        welcome_label.pack(pady=15)
 
-        # Como funciona el juego
-        self.label = ttk.Label(
+        # Descripción del juego
+        description_label = ctk.CTkLabel(
             main_frame, 
-            text="El juego Simón con dos botones funciona mostrando una secuencia de luces en dos LEDs, una tras otra, que el jugador debe replicar presionando el botón correspondiente al LED encendido. La partida comienza con una secuencia aleatoria de cinco pulsos. El jugador tiene que seguirla en orden y cada acierto suma puntos según el número de pulsaciones correctas consecutivas: 5 puntos si completa la secuencia, 4 si acierta las primeras cuatro, y así sucesivamente.",
-            wraplength=500,
-            font=("Helvetica", 10)
+            text="El juego Simón Little funciona mostrando una secuencia de luces en dos LEDs, una tras otra, que el jugador debe memorizar y replicar presionando el botón correspondiente al LED encendido. La partida comienza con una secuencia aleatoria de cinco pulsaciones. El jugador tiene que seguirla en orden y cada acierto suma puntos según el número de pulsaciones correctas consecutivas: cinco puntos si completa la secuencia, cuatro si acierta cuatro, y así sucesivamente. Los puntos se acumulan en cada partida y se muestran en la pantalla una vez finalizada la misma.",
+            wraplength=600,
+            font= fuente_subtitulo
         )
-        self.label.grid(row=2, column=0, pady=20)
-
-       # Frame para el botón de inicio (para centrado y efectos)
-        start_frame = tk.Frame(main_frame, bg='#f0f0f0')
-        start_frame.grid(row=1, column=0, columnspan=3, pady=20)
+        description_label.pack(pady=20, padx=30)
 
         # Botón de inicio personalizado
-        self.start_button = tk.Button(
-            start_frame,
+        imagen = Image.open("simon.png")
+        imagen = imagen.resize((30, 30))
+
+        self.start_button = ctk.CTkButton(
+            main_frame,
             text="EMPEZAR JUEGO",
-            font=self.button_font,
-            command=self.iniciar_juego_con_efecto,
-            bg='#4CAF50',
-            fg='white',
-            activebackground='#45a049',
-            activeforeground='white',
-            relief=tk.RAISED,
-            bd=3,
-            padx=30,
-            pady=15,
-            cursor='hand2'  # Cambia el cursor al pasar por encima
+            command=self.iniciar_juego,
+            font= fuente_boton,
+            corner_radius=20,
+            hover_color="#00aaff",
+            width=300,
+            height=60,
+            cursor="hand2",
+            image=ImageTk.PhotoImage(imagen),
         )
-        self.start_button.grid(row=0, column=0, padx=20)
+        self.start_button.pack(pady=20)
 
-        # Configurar efectos hover
-        self.start_button.bind('<Enter>', self.on_enter)
-        self.start_button.bind('<Leave>', self.on_leave)
-        self.start_button.bind('<Button-1>', self.on_click)
 
-        # Entrada para comandos UART
-        self.uart_frame = ttk.LabelFrame(main_frame, text="Control Debug Botones", padding="10")
-        self.uart_frame.grid(row=3, column=0, pady=20, sticky=(tk.W, tk.E))
 
-        self.uart_entry = ttk.Entry(self.uart_frame)
-        self.uart_entry.grid(row=0, column=0, padx=5)
+        # Bind Ctrl+D to show debug controls
+        self.root.bind('<Control-d>', self.toggle_debug_controls)
 
-        self.send_button = ttk.Button(
-            self.uart_frame,
-            text="Enviar",
-            command=self.enviar_comando
-        )
-        self.send_button.grid(row=0, column=1, padx=5)
+    def toggle_debug_controls(self, event):
+        if hasattr(self, 'debug_controls_visible') and self.debug_controls_visible:
+            self.uart_frame.pack_forget()
+            self.led_frame.pack_forget()
+            self.debug_controls_visible = False
+        else:
+            # Crear frame de debug
+            self.uart_frame = ctk.CTkFrame(self.root, corner_radius=10)
+            self.uart_frame.pack(padx=20, pady=20, fill="x")
 
-        # Frame para agrupar los botones LED
-        self.led_frame = ttk.LabelFrame(main_frame, text="Control de LEDs", padding="10")
-        self.led_frame.grid(row=4, column=0, columnspan=3, pady=10, sticky=(tk.W, tk.E))
+            # Entrada para comandos UART
+            self.uart_entry = ctk.CTkEntry(
+                self.uart_frame, 
+                placeholder_text="Introduce comando UART"
+            )
+            self.uart_entry.pack(side="left", padx=10, expand=True, fill="x")
 
-        self.led_frame.grid_columnconfigure(0, weight=1)
-        self.led_frame.grid_columnconfigure(1, weight=1)
-        self.led_frame.grid_columnconfigure(2, weight=1)
+            # Botón de envío
+            self.send_button = ctk.CTkButton(
+                self.uart_frame,
+                text="Enviar",
+                command=self.enviar_comando,
+                width=100
+            )
+            self.send_button.pack(side="right", padx=10)
 
-        # Botones LED en el frame agrupado
-        self.led_button = ttk.Button(
-            self.led_frame,
-            text="LED 1",
-            command=lambda: self.enviar_uart("LED1")
-        )
-        self.led_button.grid(row=0, column=0, padx=5, pady=5)
+            # Frame para LEDs
+            self.led_frame = ctk.CTkFrame(self.root, corner_radius=10)
+            self.led_frame.pack(padx=20, pady=10, fill="x")
 
-        self.led2_button = ttk.Button(
-            self.led_frame,
-            text="LED 2",
-            command=lambda: self.enviar_uart("LED2")
-        )
-        self.led2_button.grid(row=0, column=1, padx=5, pady=5)
+            led_buttons = [
+                ("LED 1", lambda: self.enviar_uart("LED1")),
+                ("LED 2", lambda: self.enviar_uart("LED2")),
+                ("LED 3", lambda: self.enviar_uart("LED3"))
+            ]
 
-        self.led3_button = ttk.Button(
-            self.led_frame,
-            text="LED 3",
-            command=lambda: self.enviar_uart("LED3")
-        )
-        self.led3_button.grid(row=0, column=2, padx=5, pady=5)
+            for text, command in led_buttons:
+                button = ctk.CTkButton(
+                    self.led_frame, 
+                    text=text, 
+                    command=command
+                )
+                button.pack(side="left", expand=True, padx=10, pady=10)
 
+            # Elegir puerto serie
+            self.port_label = ctk.CTkLabel(
+                self.uart_frame, 
+                text="Puerto serie:"
+            )
+            self.port_label.pack(side="left", padx=10)
+
+            # Obtener lista de puertos disponibles
+            available_ports = [port.device for port in serial.tools.list_ports.comports()]
+
+            # Manejar el caso de que no haya puertos disponibles
+            if not available_ports:
+                available_ports = ["No hay puertos disponibles"]
+
+            self.port_combobox = ctk.CTkComboBox(
+                self.uart_frame,
+                values=available_ports,
+                width=100
+            )
+            
+            print("Puertos disponibles",available_ports)
+            print("Puerto elegido",self.port_combobox.get())
+            print("Puerto actual",self.port)
+
+            # Establecer un valor predeterminado si hay puertos disponibles
+            if available_ports and available_ports[0] != "No hay puertos disponibles":
+                self.port_combobox.set(available_ports[0])
+
+            self.port_combobox.pack(side="left", padx=10)
+
+            self.debug_controls_visible = True
 
     def enviar_uart(self, comando):
         if self.ser and self.ser.is_open:
@@ -160,32 +189,69 @@ class SimonGame:
         comando = self.uart_entry.get()
         if comando:
             self.enviar_uart(comando)
-            self.uart_entry.delete(0, tk.END)
-
-    def on_enter(self, event):
-        """Efecto al pasar el mouse por encima"""
-        self.start_button.config(bg='#45a049')
-
-    def on_leave(self, event):
-        """Efecto al retirar el mouse"""
-        self.start_button.config(bg='#4CAF50')
-
-    def on_click(self, event):
-        """Efecto al hacer clic"""
-        self.start_button.config(relief=tk.SUNKEN)
-        self.root.after(100, lambda: self.start_button.config(relief=tk.RAISED))
-
-    def iniciar_juego_con_efecto(self):
-        """Inicia el juego con efecto visual"""
-        # Efecto de "flash" al iniciar
-        original_color = self.start_button.cget('bg')
-        self.start_button.config(bg='white')
-        self.root.after(100, lambda: self.start_button.config(bg=original_color))
-        self.iniciar_juego()
+            self.uart_entry.delete(0, 'end')
 
     def iniciar_juego(self):
-        print("Juego empezado")
         self.enviar_uart("STRT")  # Envía START al iniciar el juego
+        print("Juego empezado")
+        self.bucle_juego()
+
+    def bucle_juego(self):
+        def juego_thread():
+            try:
+                while True:
+                    if not self.ser or not self.ser.is_open:
+                        print("La conexión serial no está disponible. Saliendo del bucle de juego.")
+                        break
+                    
+                    # Generar secuencia de 5 colores
+                    lista_colores = ["LED1", "LED2", "LED3"]
+                    secuencia = [random.choice(lista_colores) for _ in range(5)]
+                    print("Secuencia generada:", secuencia)
+
+                    # Mostrar la secuencia generada (posiblemente en los LEDs)
+                    for color in secuencia:
+                        if not self.ser or not self.ser.is_open:
+                            print("Conexión cerrada durante la ejecución del juego.")
+                            return
+                        self.ser.write(f"{color}\n".encode())
+                    
+                    # Recibir la secuencia de la placa
+                    secuencia_placa = []
+                    print("Esperando secuencia del usuario...")
+                    
+                    for _ in range(5):
+                        if not self.ser or not self.ser.is_open:
+                            print("Conexión cerrada durante la ejecución del juego.")
+                            return
+                        entrada = self.ser.readline().decode().strip()
+                        if not entrada:
+                            print("Tiempo de espera agotado")
+                            break
+                        secuencia_placa.append(entrada)
+                    
+                    print("Secuencia del usuario:", secuencia_placa)
+                    
+                    # Comprobar si la secuencia es correcta
+                    if secuencia == secuencia_placa:
+                        print("¡Secuencia correcta!")
+                        # Puedes agregar aquí una señal de éxito (por ejemplo, encender todos los LEDs)
+                    else:
+                        print("Secuencia incorrecta. Fin del juego.")
+                        break
+                    
+                    # Pequeña pausa entre rondas
+                    time.sleep(5)
+            except serial.SerialException as e:
+                print(f"Error en la comunicación serial: {e}")
+            except Exception as e:
+                print(f"Error inesperado: {e}")
+            finally:
+                if self.ser and self.ser.is_open:
+                    self.ser.close()
+
+        threading.Thread(target=juego_thread, daemon=True).start()
+
 
     def cerrar_aplicacion(self):
         if self.ser and self.ser.is_open:
@@ -194,7 +260,7 @@ class SimonGame:
         self.root.quit()
 
 def main():
-    root = tk.Tk()
+    root = ctk.CTk()
     app = SimonGame(root)
     root.protocol("WM_DELETE_WINDOW", app.cerrar_aplicacion)
     root.mainloop()
