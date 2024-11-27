@@ -6,6 +6,9 @@ import customtkinter as ctk
 from PIL import Image, ImageTk
 import time
 import serial.tools.list_ports
+import pygame
+
+
 
 
 # Configuración de las rutas de Tcl y Tk
@@ -27,7 +30,7 @@ class SimonGame:
         
 
     def setup_serial(self):
-        self.port = "COM5"  # Cambiar al puerto serie correspondiente
+        self.port = "COM5"  # Puerto serie por defecto
         self.baud_rate = 115200 
         self.ser = None
         try:
@@ -197,58 +200,109 @@ class SimonGame:
         self.bucle_juego()
 
     def bucle_juego(self):
+
+        def temporizador(tiempo_limite, bandera_tiempo):
+            time.sleep(tiempo_limite)
+            bandera_tiempo[0] = True
+
+        def reproducir_sonido(ruta):
+            # Inicializar pygame mixer
+            pygame.mixer.init()
+            
+            try:
+                # Cargar el sonido
+                pygame.mixer.music.load(ruta)
+                
+                # Reproducir el sonido
+                pygame.mixer.music.play()
+                
+                # Esperar a que termine de sonar
+                while pygame.mixer.music.get_busy():
+                    pygame.time.Clock().tick(10)
+            
+            except FileNotFoundError:
+                print("Error: El archivo de sonido no se encontró.")
+            except Exception as e:
+                print(f"Error al reproducir el sonido: {e}")
+            
+            # Cerrar pygame mixer
+            pygame.mixer.quit()
+
         def juego_thread():
             try:
                 while True:
+
                     if not self.ser or not self.ser.is_open:
                         print("La conexión serial no está disponible. Saliendo del bucle de juego.")
                         break
                     
                     # Generar secuencia de 5 colores
-                    lista_colores = ["LED1", "LED2", "LED3"]
+                    lista_colores = ["LED1", "LED2"]
                     secuencia = [random.choice(lista_colores) for _ in range(5)]
                     print("Secuencia generada:", secuencia)
 
-                    # Mostrar la secuencia generada (posiblemente en los LEDs)
+                    # Mostrar la secuencia generada en los LED
                     for color in secuencia:
                         if not self.ser or not self.ser.is_open:
                             print("Conexión cerrada durante la ejecución del juego.")
-                            return
-                        self.ser.write(f"{color}\n".encode())
-                    
+                        self.enviar_uart(color)
+                        time.sleep(1)
+
                     # Recibir la secuencia de la placa
                     secuencia_placa = []
                     print("Esperando secuencia del usuario...")
+                    tiempo_finalizado = [False]
+
+                    hilo_temporizador = threading.Thread(target=temporizador, args=(20, tiempo_finalizado))
+                    hilo_temporizador.start()
                     
-                    for _ in range(5):
+                    # Bucle para recoger las pulsaciones
+                    while len(secuencia_placa) < 5 and not tiempo_finalizado[0]:
                         if not self.ser or not self.ser.is_open:
                             print("Conexión cerrada durante la ejecución del juego.")
                             return
-                        entrada = self.ser.readline().decode().strip()
-                        if not entrada:
-                            print("Tiempo de espera agotado")
-                            break
-                        secuencia_placa.append(entrada)
+    
+                        # Leer entrada si está disponible
+                        if self.ser.in_waiting:
+                            entrada = self.ser.readline()
+                            print(entrada)
+                            dato = entrada.decode('utf-8').replace('\x00', '').replace('\x001','').strip()
+                            print (dato)
+                            if (dato[0] == "1"):
+                                secuencia_placa.append("LED1")
+                            elif (dato[0] == "2"):
+                                secuencia_placa.append("LED2")
+                            print("Secuencia del usuario:", secuencia_placa)
                     
-                    print("Secuencia del usuario:", secuencia_placa)
-                    
-                    # Comprobar si la secuencia es correcta
-                    if secuencia == secuencia_placa:
-                        print("¡Secuencia correcta!")
-                        # Puedes agregar aquí una señal de éxito (por ejemplo, encender todos los LEDs)
-                    else:
-                        print("Secuencia incorrecta. Fin del juego.")
-                        break
+                    # Verificar condición de finalización
+                    if tiempo_finalizado[0]:
+                        print("Tiempo finalizado.")
+                        print("Secuencia del usuario:", secuencia_placa)
+                    elif len(secuencia_placa) == 5:
+                        print("Secuencia del usuario:", secuencia_placa)
+    
+                        # Comprobar si la secuencia es correcta
+                        if secuencia == secuencia_placa:
+                            print("¡Secuencia correcta!")
+                            reproducir_sonido("completado.mp3")
+                        else:
+                            print("Secuencia incorrecta.")
+                            reproducir_sonido("super-mario-death-sound-sound-effect.mp3")
+
+                    # Calcular la puntuación basada en la cantidad de LEDs acertados
+                    aciertos = sum(1 for i in range(len(secuencia_placa)) if i < len(secuencia) and secuencia[i] == secuencia_placa[i])
+                    puntuacion = aciertos
+                    print(f"Puntuación: {puntuacion} de 5")
                     
                     # Pequeña pausa entre rondas
-                    time.sleep(5)
+                    time.sleep(10)
             except serial.SerialException as e:
                 print(f"Error en la comunicación serial: {e}")
             except Exception as e:
                 print(f"Error inesperado: {e}")
             finally:
                 if self.ser and self.ser.is_open:
-                    self.ser.close()
+                    print("juegoacabado")#self.ser.close()
 
         threading.Thread(target=juego_thread, daemon=True).start()
 
@@ -258,6 +312,7 @@ class SimonGame:
             self.ser.close()
             print("Cerrando conexión serie.")
         self.root.quit()
+
 
 def main():
     root = ctk.CTk()
