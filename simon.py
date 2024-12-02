@@ -97,7 +97,25 @@ class SimonGame:
         )
         self.start_button.pack(pady=20)
 
+        # Contadores, uno a la izquierda y otro a la derecha
+        contador_frame = ctk.CTkFrame(main_frame, corner_radius=10)
+        contador_frame.pack(pady=10)
 
+        # Contador de puntuación
+        self.score_label = ctk.CTkLabel(
+            contador_frame,
+            text="Puntuación actual: 0",
+            font= fuente_texto
+        )
+        self.score_label.pack(padx= 15 ,pady=10, side="left")
+
+        # Contador de puntuación total de todos los juegos
+        self.total_score_label = ctk.CTkLabel(
+            contador_frame,
+            text="Puntuación total: 0",
+            font= fuente_texto
+        )
+        self.total_score_label.pack(padx= 15, pady=10, side="right")
 
         # Bind Ctrl+D to show debug controls
         self.root.bind('<Control-d>', self.toggle_debug_controls)
@@ -241,6 +259,11 @@ class SimonGame:
                     secuencia = [random.choice(lista_colores) for _ in range(5)]
                     print("Secuencia generada:", secuencia)
 
+                    # Reproducir sonido de inicio
+                    self.enviar_uart("LED3")
+                    reproducir_sonido("contador.mp3")
+                    self.enviar_uart("NED3")
+
                     # Mostrar la secuencia generada en los LED
                     for color in secuencia:
                         if not self.ser or not self.ser.is_open:
@@ -276,6 +299,7 @@ class SimonGame:
                     
                     # Verificar condición de finalización
                     if tiempo_finalizado[0]:
+                        reproducir_sonido("reloj.mp3")
                         print("Tiempo finalizado.")
                         print("Secuencia del usuario:", secuencia_placa)
                     elif len(secuencia_placa) == 5:
@@ -293,6 +317,7 @@ class SimonGame:
                     aciertos = sum(1 for i in range(len(secuencia_placa)) if i < len(secuencia) and secuencia[i] == secuencia_placa[i])
                     puntuacion = aciertos
                     print(f"Puntuación: {puntuacion} de 5")
+                    self.actualizar_puntuacion(puntuacion)
                     
                     # Pequeña pausa entre rondas
                     time.sleep(10)
@@ -302,7 +327,7 @@ class SimonGame:
                 print(f"Error inesperado: {e}")
             finally:
                 if self.ser and self.ser.is_open:
-                    print("juegoacabado")#self.ser.close()
+                    print("juegoacabado")
 
         threading.Thread(target=juego_thread, daemon=True).start()
 
@@ -312,6 +337,10 @@ class SimonGame:
             self.ser.close()
             print("Cerrando conexión serie.")
         self.root.quit()
+
+    def actualizar_puntuacion(self, puntuacion):
+        self.score_label.configure(text=f"Puntuación actual: {puntuacion}")
+        self.total_score_label.configure(text=f"Puntuación total: {puntuacion + int(self.total_score_label.cget('text').split(': ')[1])}")
 
 
 def main():
