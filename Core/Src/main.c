@@ -118,11 +118,15 @@ int main(void) {
 			HAL_UART_Transmit(&huart2, send2, sizeof(send2), 10); // enviar datos por uart
 		}
 
-		if (serial_LED_start == 1) {
-			serial_LED_start = 0;
-			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_11);
-			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_11);
+		if (serial_LED_start == 1) { //SI MANDAS LED3 SERIAL_LED_START=1
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 1);
 		}
+		if (serial_LED_start == 0) { // SI MANDAS NED3 SERIAL_LED_START=0
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
+
+		}
+
+
 		if (serial_LED1 == 1) {
 			serial_LED1 = 0;
 			HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
@@ -288,11 +292,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (strncmp((char*) rx_buff, "LED2", 4) == 0) {
 		serial_LED2 = 1;
 	}
-	if (strncmp((char*) rx_buff, "STRT", 4) == 0) {
-		serial_LED_start = 1;
-	}
 	if (strncmp((char*) rx_buff, "LED3", 4) == 0) {
 		serial_LED_start = 1;
+	}
+	if (strncmp((char*) rx_buff, "NED3", 4) == 0) {
+		serial_LED_start = 0;
 	}
 }
 
